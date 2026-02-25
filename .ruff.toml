@@ -1,0 +1,28 @@
+# Target Python version
+target-version = "py310"
+
+# Same as Black, but 88 is the industry standard
+line-length = 88
+
+[lint]
+# 1. Enable specific rule sets
+# E: pycodestyle (standard PEP8)
+# F: Pyflakes (logic errors)
+# I: isort (auto-sorts your imports)
+# B: flake8-bugbear (finds likely bugs)
+# UP: pyupgrade (keeps syntax modern)
+select = ["E", "F", "I", "B", "UP"]
+
+# 2. Ignore specific rules if they get annoying
+# E501: Line too long (Ruff format handles this anyway)
+ignore = ["E501"]
+
+# 3. Allow unused imports in __init__.py files 
+[lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[format]
+# Use double quotes
+quote-style = "double"
+# Indent with spaces
+indent-style = "space"
