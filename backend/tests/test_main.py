@@ -3,6 +3,7 @@ def test_read_root(client):
     assert response.status_code == 200
     assert response.json()["message"] == "Welcome"
 
+
 def test_health_check(client):
     response = client.get("/health")
     assert response.status_code == 200
