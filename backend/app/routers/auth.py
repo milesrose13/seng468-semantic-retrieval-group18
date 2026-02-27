@@ -1,4 +1,4 @@
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI
 from pwdlib import PasswordHash
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -28,7 +28,7 @@ class SignupResponse(BaseModel):
 app = FastAPI()
 
 @app.post("/auth/signup")
-async def signup(user_in: CreateUser, db: Session = Depends(get_db)):
+async def signup(user_in: CreateUser, db: Session = Depends(get_db)): # noqa: B008, claude told me to add this
     #TODO: Write code to check if user is already in database
     #existing_user = db.query(User).filter(User.username == user_in.username).first()
     #if exisiting_user:
