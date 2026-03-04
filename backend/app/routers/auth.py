@@ -1,14 +1,16 @@
-import jwt
-from fastapi import Depends, FastAPI, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
-from jwt.exceptions import InvalidTokenError
+from datetime import timedelta
+
+from fastapi import Depends, FastAPI, status
+from fastapi.responses import JSONResponse
+
+#from fastapi.security import OAuth2PasswordBearer
 from pwdlib import PasswordHash
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from ..database import get_db  # import the database.py
 from ..models.user import User
-from ..utils import create_access_token
+from ..utils import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token
 
 # Notes for documentation, what I'm using to dev:
 # Password hashing and security with FastAPI
@@ -23,16 +25,21 @@ password_hash = PasswordHash.recommended()
 #For security against timing from FASTAPI doc
 DUMMY_HASH = password_hash.hash("dummy")
 
+#Class declerations
 
 class CreateUser(BaseModel):
     username: str
     password: str
     
-class SignupResponse(BaseModel):
-    message: str  # User Created Successfully
-    user_id: int | str  # STR for UUID or int
+class Token(BaseModel):
+    token: str
+    token_type: str
+    user_id: str | int
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+#for now keep it out
+#oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+#Helper funcs
 
 def verify_password(plain_password, hashed_password):
     return password_hash.verify(plain_password, hashed_password)
@@ -61,11 +68,11 @@ app = FastAPI()
 @app.post("/auth/signup")
 async def signup(user_in: CreateUser, db: Session = Depends(get_db)):  # noqa: B008, claude told me to add this
     # TODO: Write code to check if user is already in database
-    existing_user = db.query(User).filter(User.username == user_in.username).first()
+    existing_user = get_user(db,user_in.username)
     if existing_user:
-        raise HTTPException(
-            status_code = status.HTTP_409_CONFLICT,
-            detail="Username Already Exists"
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={"error": "Username already exists"}
         )
 
     # After checking if the username isnt a duplicate then I can hash the password they put in
@@ -87,7 +94,14 @@ async def signup(user_in: CreateUser, db: Session = Depends(get_db)):  # noqa: B
 
 @app.post("/auth/login")
 async def login(user_in: CreateUser, db: Session = Depends(get_db)): #noqa: B008
-    #TODO: Request "username", "Password"
-    #TODO: Response 200 OK token and user_id
-    #TODO: Error 401 Unauthorized "error: Invald Credentials"
-    return 
+    user = authenticate_user(db, user_in.username,user_in.password)
+    if not user:
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content={"error":"Invalid credentials"}
+        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user_in.username}, expires_delta=access_token_expires
+    )
+    return Token(token = access_token, token_type="bearer", user_id = user.id)
