@@ -1,5 +1,5 @@
 import jwt
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jwt.exceptions import InvalidTokenError
 from pwdlib import PasswordHash
@@ -61,9 +61,12 @@ app = FastAPI()
 @app.post("/auth/signup")
 async def signup(user_in: CreateUser, db: Session = Depends(get_db)):  # noqa: B008, claude told me to add this
     # TODO: Write code to check if user is already in database
-    # existing_user = db.query(User).filter(User.username == user_in.username).first()
-    # if exisiting_user:
-    # throw the HTTPException TODO: Look into throwing HTTPExcetpion
+    existing_user = db.query(User).filter(User.username == user_in.username).first()
+    if existing_user:
+        raise HTTPException(
+            status_code = status.HTTP_409_CONFLICT,
+            detail="Username Already Exists"
+        )
 
     # After checking if the username isnt a duplicate then I can hash the password they put in
     hashed_pass = get_password_hash(user_in.password)
