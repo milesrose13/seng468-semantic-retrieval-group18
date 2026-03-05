@@ -3,15 +3,18 @@ Tests for document management endpoints:
   POST   /documents
   GET    /documents
   DELETE /documents/{id}
+
+MinIO/S3 is replaced by moto's in-process fake — no real object storage needed.
 """
 
 import io
 import os
-from unittest.mock import patch
 
+import boto3
 import pytest
 from fastapi.testclient import TestClient
 from jose import jwt
+from moto import mock_aws
 from pwdlib import PasswordHash
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -21,6 +24,20 @@ from backend.app import storage
 from backend.app.database import Base, get_db
 from backend.app.main import app
 from backend.app.models.user import User
+
+# ---------------------------------------------------------------------------
+# Ensure moto intercepts boto3 (no real endpoint during tests)
+# ---------------------------------------------------------------------------
+os.environ.pop("MINIO_ENDPOINT", None)
+os.environ["MINIO_ACCESS_KEY"] = "test"
+os.environ["MINIO_SECRET_KEY"] = "test"
+os.environ["MINIO_BUCKET"] = "documents"
+
+# Reload the module-level constants in storage so the env changes above apply
+storage.MINIO_ENDPOINT = None
+storage.MINIO_ACCESS_KEY = "test"
+storage.MINIO_SECRET_KEY = "test"
+storage.MINIO_BUCKET = "documents"
 
 # ---------------------------------------------------------------------------
 # Test database — SQLite in-memory via StaticPool (single shared connection)
@@ -54,21 +71,39 @@ password_hash = PasswordHash.recommended()
 
 
 @pytest.fixture(scope="module")
-def client():
+def aws_mock():
+    """Start moto's fake S3 for the entire test module."""
+    with mock_aws():
+        # Create the bucket once — mirrors what ensure_bucket_exists() does at startup
+        boto3.client(
+            "s3",
+            region_name="us-east-1",
+            aws_access_key_id="test",
+            aws_secret_access_key="test",
+        ).create_bucket(Bucket="documents")
+        yield
+
+
+@pytest.fixture(scope="module")
+def client(aws_mock):
     Base.metadata.create_all(bind=engine)
-    # Stub out MinIO so tests run without a real object-storage service
-    with (
-        patch.object(storage, "ensure_bucket_exists"),
-        patch.object(storage, "upload_file"),
-        patch.object(storage, "delete_file"),
-    ):
-        with TestClient(app) as c:
-            yield c
+    with TestClient(app) as c:
+        yield c
     Base.metadata.drop_all(bind=engine)
 
 
+def _s3():
+    """Direct boto3 client for asserting bucket state in tests."""
+    return boto3.client(
+        "s3",
+        region_name="us-east-1",
+        aws_access_key_id="test",
+        aws_secret_access_key="test",
+    )
+
+
 def _create_user_and_token(username: str) -> tuple[str, int]:
-    """Insert a user directly and return a valid JWT token + user id."""
+    """Insert a user directly and return a valid JWT + user id."""
     db = TestingSessionLocal()
     try:
         user = User(
@@ -92,6 +127,12 @@ def _auth(token: str) -> dict:
 
 def _pdf(name: str = "test.pdf"):
     return ("file", (name, io.BytesIO(b"%PDF-1.4 fake"), "application/pdf"))
+
+
+def _bucket_keys() -> list[str]:
+    """Return all object keys currently in the moto bucket."""
+    resp = _s3().list_objects_v2(Bucket="documents")
+    return [obj["Key"] for obj in resp.get("Contents", [])]
 
 
 # ---------------------------------------------------------------------------
@@ -134,6 +175,31 @@ class TestUpload:
         bad_file = ("file", ("notes.txt", io.BytesIO(b"hello"), "text/plain"))
         resp = client.post("/documents", files=[bad_file], headers=_auth(token))
         assert resp.status_code == 400
+
+    def test_file_stored_in_s3(self, client):
+        """After upload, the object must exist in the fake S3 bucket."""
+        token, _ = _create_user_and_token("upload_s3_user")
+        resp = client.post(
+            "/documents", files=[_pdf("stored.pdf")], headers=_auth(token)
+        )
+        assert resp.status_code == 202
+
+        doc_id = resp.json()["document_id"]
+        keys = _bucket_keys()
+        assert any(doc_id in k for k in keys), f"{doc_id} not found in bucket: {keys}"
+
+    def test_file_content_preserved(self, client):
+        """The bytes stored in S3 must match what was uploaded."""
+        token, _ = _create_user_and_token("upload_content_user")
+        content = b"%PDF-1.4 this is the real content"
+        file = ("file", ("real.pdf", io.BytesIO(content), "application/pdf"))
+
+        resp = client.post("/documents", files=[file], headers=_auth(token))
+        doc_id = resp.json()["document_id"]
+
+        key = next(k for k in _bucket_keys() if doc_id in k)
+        body = _s3().get_object(Bucket="documents", Key=key)["Body"].read()
+        assert body == content
 
 
 # ---------------------------------------------------------------------------
@@ -212,6 +278,19 @@ class TestDelete:
 
         docs = client.get("/documents", headers=h).json()
         assert not any(d["document_id"] == doc_id for d in docs)
+
+    def test_delete_removes_object_from_s3(self, client):
+        """After delete, the object must be gone from the fake S3 bucket."""
+        token, _ = _create_user_and_token("del_s3_user")
+        h = _auth(token)
+
+        doc_id = client.post("/documents", files=[_pdf()], headers=h).json()[
+            "document_id"
+        ]
+        assert any(doc_id in k for k in _bucket_keys())
+
+        client.delete(f"/documents/{doc_id}", headers=h)
+        assert not any(doc_id in k for k in _bucket_keys())
 
     def test_delete_not_found(self, client):
         import uuid
