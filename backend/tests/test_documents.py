@@ -7,6 +7,7 @@ Tests for document management endpoints:
 
 import io
 import os
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -16,6 +17,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from backend.app import storage
 from backend.app.database import Base, get_db
 from backend.app.main import app
 from backend.app.models.user import User
@@ -54,8 +56,14 @@ password_hash = PasswordHash.recommended()
 @pytest.fixture(scope="module")
 def client():
     Base.metadata.create_all(bind=engine)
-    with TestClient(app) as c:
-        yield c
+    # Stub out MinIO so tests run without a real object-storage service
+    with (
+        patch.object(storage, "ensure_bucket_exists"),
+        patch.object(storage, "upload_file"),
+        patch.object(storage, "delete_file"),
+    ):
+        with TestClient(app) as c:
+            yield c
     Base.metadata.drop_all(bind=engine)
 
 

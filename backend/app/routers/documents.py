@@ -3,6 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
+from .. import storage
 from ..database import get_db
 from ..dependencies import get_current_user
 from ..models.document import Document, DocumentStatus
@@ -24,7 +25,8 @@ async def upload_document(
     doc_id = uuid.uuid4()
     storage_key = f"user{current_user.id}/{doc_id}.pdf"
 
-    # TODO: upload file bytes to MinIO using storage_key
+    file_bytes = await file.read()
+    storage.upload_file(file_bytes, storage_key)
 
     doc = Document(
         id=doc_id,
@@ -77,7 +79,8 @@ async def delete_document(
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    # TODO: delete from MinIO using doc.storage_key
+    storage.delete_file(doc.storage_key)
+
     # TODO: delete embeddings from vector DB
 
     db.delete(doc)
