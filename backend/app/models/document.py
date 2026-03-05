@@ -2,9 +2,10 @@ import enum
 import uuid
 from datetime import datetime
 
-from app.database import Base
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
+
+from ..database import Base
 
 
 class DocumentStatus(str, enum.Enum):

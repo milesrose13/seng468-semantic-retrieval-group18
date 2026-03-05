@@ -160,6 +160,74 @@ Insert into vector DB
 
 Update DB (status = ready, page_count)
 
+## Local Development Setup
+
+### 1. Environment
+
+```bash
+cp .env.example .env
+```
+
+### 2. Start Postgres
+
+```bash
+docker compose -f dockercompose.yml up -d postgres
+```
+
+Wait until it's healthy:
+
+```bash
+docker compose -f dockercompose.yml ps
+# STATUS column should show: Up (healthy)
+```
+
+### 3. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Run migrations
+
+Apply all migrations to the database:
+
+```bash
+alembic upgrade head
+```
+
+Check current migration state:
+
+```bash
+alembic current
+```
+
+### 5. Creating a new migration
+
+After modifying models in `backend/app/models/__init__.py`, autogenerate a migration:
+
+```bash
+alembic revision --autogenerate -m "describe your change"
+alembic upgrade head
+```
+
+Always commit the generated file in `alembic/versions/` to version control.
+
+### 6. Run tests
+
+```bash
+pytest
+```
+
+Tests use SQLite in-memory — no Postgres required.
+
+### 7. Stop Postgres
+
+```bash
+docker compose -f dockercompose.yml down
+```
+
+---
+
 ## Docker Requirements
 
 Must work with:

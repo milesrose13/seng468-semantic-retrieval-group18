@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 
+from .routers import documents
+
 app = FastAPI(
     title="Semantic Retrieval Group 18 API",
     description="Semantic Retrieval Group 18 API",
@@ -8,7 +10,7 @@ app = FastAPI(
 
 # TO DO: Add middle ware
 
-# TO DO: Include routers using app.include_router(router)
+app.include_router(documents.router)
 
 
 @app.get("/")
