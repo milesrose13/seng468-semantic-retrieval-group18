@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
-from .. import storage
+from .. import queue, storage, vector
 from ..database import get_db
 from ..dependencies import get_current_user
 from ..models.document import Document, DocumentStatus
@@ -38,7 +38,7 @@ async def upload_document(
     db.add(doc)
     db.commit()
 
-    # TODO: enqueue background job with doc_id
+    queue.publish_job(str(doc_id), storage_key, current_user.id)
 
     return {
         "message": "PDF uploaded, processing started",
@@ -80,8 +80,7 @@ async def delete_document(
         raise HTTPException(status_code=404, detail="Document not found")
 
     storage.delete_file(doc.storage_key)
-
-    # TODO: delete embeddings from vector DB
+    vector.delete_embeddings(str(document_id))
 
     db.delete(doc)
     db.commit()
