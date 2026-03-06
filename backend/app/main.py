@@ -1,14 +1,27 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
+
+from . import storage
+from .routers import documents
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    storage.ensure_bucket_exists()
+    yield
+
 
 app = FastAPI(
     title="Semantic Retrieval Group 18 API",
     description="Semantic Retrieval Group 18 API",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 # TO DO: Add middle ware
 
-# TO DO: Include routers using app.include_router(router)
+app.include_router(documents.router)
 
 
 @app.get("/")

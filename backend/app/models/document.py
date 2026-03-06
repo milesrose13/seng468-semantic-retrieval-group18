@@ -1,24 +1,31 @@
+import enum
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
 
-from backend.app.database import Base
+from ..database import Base
+
+
+class DocumentStatus(str, enum.Enum):
+    PROCESSING = "processing"
+    READY = "ready"
+    ERROR = "error"
 
 
 class Document(Base):
     __tablename__ = "documents"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
-    filename = Column(String, nullable=False)
-    upload_date = Column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
-    )
-    status = Column(
-        String, nullable=False, default="processing"
-    )  # "processing" | "ready"
-    page_count = Column(Integer, nullable=True)
+
+    # FK from user table
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+
+    filename = Column(String(255), nullable=False)
+    upload_date = Column(DateTime, default=datetime.now)
+    status = Column(Enum(DocumentStatus), default=DocumentStatus.PROCESSING)
+    page_count = Column(Integer, nullable=True)  # Populated later by worker
+
+    # The path where the file lives in MinIO (e.g., "user1/doc-uuid.pdf")
+    storage_key = Column(String(512), nullable=False)
