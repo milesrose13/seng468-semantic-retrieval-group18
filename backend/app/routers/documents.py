@@ -38,7 +38,14 @@ async def upload_document(
     db.add(doc)
     db.commit()
 
-    queue.publish_job(str(doc_id), storage_key, current_user.id)
+    try:
+        queue.publish_job(str(doc_id), storage_key, current_user.id)
+    except Exception as e:
+        doc.status = DocumentStatus.ERROR
+        db.commit()
+        raise HTTPException(
+            status_code=500, detail="Failed to enqueue processing job"
+        ) from e
 
     return {
         "message": "PDF uploaded, processing started",

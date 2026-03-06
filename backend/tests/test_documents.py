@@ -212,6 +212,54 @@ class TestUpload:
             assert call_kwargs[0][0] == doc_id  # first positional arg is document_id
             assert doc_id in call_kwargs[0][1]  # storage_key contains the doc_id
 
+    def test_db_record_committed_before_queue_publish(self, client):
+        """DB record with status=processing must exist before publish_job is called."""
+        import uuid as uuid_mod
+
+        from backend.app.models.document import Document, DocumentStatus
+
+        token, _ = _create_user_and_token("upload_order_user")
+        committed_statuses = []
+
+        def capture_then_publish(doc_id, storage_key, user_id):
+            # Open a fresh session to verify the commit happened before this call
+            db = TestingSessionLocal()
+            try:
+                doc = (
+                    db.query(Document)
+                    .filter(Document.id == uuid_mod.UUID(doc_id))
+                    .first()
+                )
+                committed_statuses.append(doc.status if doc else None)
+            finally:
+                db.close()
+
+        with patch.object(queue, "publish_job", side_effect=capture_then_publish):
+            resp = client.post("/documents", files=[_pdf()], headers=_auth(token))
+
+        assert resp.status_code == 202
+        assert committed_statuses == [DocumentStatus.PROCESSING]
+
+    def test_queue_failure_returns_500_and_marks_error(self, client):
+        """If publish_job raises, endpoint returns 500 and document status is ERROR."""
+        from backend.app.models.document import Document, DocumentStatus
+
+        token, _ = _create_user_and_token("upload_fail_user")
+        with patch.object(queue, "publish_job", side_effect=Exception("broker down")):
+            resp = client.post("/documents", files=[_pdf()], headers=_auth(token))
+
+        assert resp.status_code == 500
+
+        # The DB record should still exist but with status=error
+        db = TestingSessionLocal()
+        try:
+            docs = (
+                db.query(Document).filter(Document.status == DocumentStatus.ERROR).all()
+            )
+            assert any(True for _ in docs)  # at least one error doc exists
+        finally:
+            db.close()
+
 
 # ---------------------------------------------------------------------------
 # GET /documents
@@ -262,6 +310,55 @@ class TestList:
         resp = client.get("/documents", headers=_auth(token_b))
         assert resp.status_code == 200
         assert resp.json() == []
+
+    def test_document_id_is_valid_uuid(self, client):
+        import uuid
+
+        token, _ = _create_user_and_token("list_uuid_user")
+        h = _auth(token)
+        client.post("/documents", files=[_pdf()], headers=h)
+
+        doc = client.get("/documents", headers=h).json()[0]
+        uuid.UUID(doc["document_id"])  # raises ValueError if not a valid UUID
+
+    def test_upload_date_is_iso8601(self, client):
+        from datetime import datetime
+
+        token, _ = _create_user_and_token("list_date_user")
+        h = _auth(token)
+        client.post("/documents", files=[_pdf()], headers=h)
+
+        doc = client.get("/documents", headers=h).json()[0]
+        # fromisoformat raises ValueError if the string isn't valid ISO 8601
+        datetime.fromisoformat(doc["upload_date"])
+
+    def test_status_ready_returned_correctly(self, client):
+        """When a worker marks a document ready, GET should reflect status=ready."""
+        from backend.app.models.document import Document, DocumentStatus
+
+        token, _ = _create_user_and_token("list_ready_user")
+        h = _auth(token)
+        resp = client.post("/documents", files=[_pdf()], headers=h)
+        doc_id = resp.json()["document_id"]
+
+        # Simulate worker completing processing
+        import uuid as uuid_mod
+
+        db = TestingSessionLocal()
+        try:
+            doc = (
+                db.query(Document).filter(Document.id == uuid_mod.UUID(doc_id)).first()
+            )
+            doc.status = DocumentStatus.READY
+            doc.page_count = 3
+            db.commit()
+        finally:
+            db.close()
+
+        docs = client.get("/documents", headers=h).json()
+        updated = next(d for d in docs if d["document_id"] == doc_id)
+        assert updated["status"] == "ready"
+        assert updated["page_count"] == 3
 
 
 # ---------------------------------------------------------------------------
