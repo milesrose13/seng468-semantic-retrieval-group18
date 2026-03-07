@@ -37,9 +37,7 @@ def search_embeddings(query: str, user_id: int, limit: int = 5) -> list[dict]:
     results = client.search(
         collection_name=QDRANT_COLLECTION,
         query_vector=vector,
-        query_filter={
-            "must": [{"key": "user_id", "match": {"value": user_id}}]
-        },
+        query_filter={"must": [{"key": "user_id", "match": {"value": user_id}}]},
         limit=limit,
         with_payload=True,
     )
