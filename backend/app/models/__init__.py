@@ -1,4 +1,4 @@
-from backend.app.models.document import Document
-from backend.app.models.user import User
+from .document import Document, DocumentStatus
+from .user import User
 
-__all__ = ["User", "Document"]
+__all__ = ["User", "Document", "DocumentStatus"]
