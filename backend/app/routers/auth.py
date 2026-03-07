@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from fastapi import Depends, FastAPI, status
+from fastapi import Depends, FastAPI, status, APIRouter
 from fastapi.responses import JSONResponse
 
 # from fastapi.security import OAuth2PasswordBearer
@@ -70,11 +70,11 @@ def authenticate_user(db: Session, username: str, password: str):
     return user
 
 
-app = FastAPI()
+router = APIRouter()
 
 
 # Post /auth/signup
-@app.post("/auth/signup")
+@router.post("/auth/signup")
 async def signup(user_in: CreateUser, db: Session = Depends(get_db)):  # noqa: B008, claude told me to add this
     # TODO: Write code to check if user is already in database
     existing_user = get_user(db, user_in.username)
@@ -102,7 +102,7 @@ async def signup(user_in: CreateUser, db: Session = Depends(get_db)):  # noqa: B
 # Post /auth/login
 
 
-@app.post("/auth/login")
+@router.post("/auth/login")
 async def login(user_in: CreateUser, db: Session = Depends(get_db)):  # noqa: B008
     user = authenticate_user(db, user_in.username, user_in.password)
     if not user:
