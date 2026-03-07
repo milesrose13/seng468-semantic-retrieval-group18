@@ -12,3 +12,4 @@ boto3
 moto[s3]
 pika
 qdrant-client
+sentence-transformers
