@@ -17,7 +17,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from backend.app import storage, vector
-from backend.app.database import Base, get_db
+from backend.app.database import Base, get_db  # noqa: F401
 from backend.app.main import app
 from backend.app.models.user import User
 
@@ -40,8 +40,6 @@ def override_get_db():
         db.close()
 
 
-app.dependency_overrides[get_db] = override_get_db
-
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 password_hash = PasswordHash.recommended()
@@ -54,11 +52,13 @@ password_hash = PasswordHash.recommended()
 
 @pytest.fixture(scope="module")
 def client():
+    app.dependency_overrides[get_db] = override_get_db
     Base.metadata.create_all(bind=engine)
     with patch.object(storage, "ensure_bucket_exists"):
         with TestClient(app) as c:
             yield c
     Base.metadata.drop_all(bind=engine)
+    app.dependency_overrides.pop(get_db, None)
 
 
 def _create_user_and_token(username: str) -> tuple[str, int]:
