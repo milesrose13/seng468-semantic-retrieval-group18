@@ -9,25 +9,23 @@ Authenticate and recieve token
 
 from unittest.mock import patch
 
-import pytest
 from fastapi.testclient import TestClient
 
 from backend.app import storage
 from backend.app.database import Base, get_db
 from backend.app.main import app
-from backend.app.models.user import User  # noqa: F401
 from backend.tests.test_documents import engine, override_get_db
-
-app.dependency_overrides[get_db] = override_get_db
 
 
 @pytest.fixture(scope="module")
 def client():
+    app.dependency_overrides[get_db] = override_get_db
     Base.metadata.create_all(bind=engine)
     with patch.object(storage, "ensure_bucket_exists"):
         with TestClient(app) as c:
             yield c
     Base.metadata.drop_all(bind=engine)
+    app.dependency_overrides.pop(get_db, None)
 
 
 # this document was written with the help of the following documentation: https://fastapi.tiangolo.com/tutorial/testing/#using-testclient

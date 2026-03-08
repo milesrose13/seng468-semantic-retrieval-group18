@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from . import storage
-from .routers import documents, search, auth
+from .routers import auth, documents, search
 
 
 @asynccontextmanager
