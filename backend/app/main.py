@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from . import storage
-from .routers import auth, documents
+from .routers import documents, search, auth
 
 
 @asynccontextmanager
@@ -22,6 +22,7 @@ app = FastAPI(
 # TO DO: Add middle ware
 
 app.include_router(documents.router)
+app.include_router(search.router)
 app.include_router(auth.router)
 
 

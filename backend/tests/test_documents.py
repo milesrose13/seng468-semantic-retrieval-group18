@@ -60,8 +60,6 @@ def override_get_db():
         db.close()
 
 
-app.dependency_overrides[get_db] = override_get_db
-
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 password_hash = PasswordHash.recommended()
@@ -87,6 +85,7 @@ def aws_mock():
 
 @pytest.fixture(scope="module")
 def client(aws_mock):
+    app.dependency_overrides[get_db] = override_get_db
     Base.metadata.create_all(bind=engine)
     with (
         patch.object(storage, "ensure_bucket_exists"),
@@ -96,6 +95,7 @@ def client(aws_mock):
         with TestClient(app) as c:
             yield c
     Base.metadata.drop_all(bind=engine)
+    app.dependency_overrides.pop(get_db, None)
 
 
 def _s3():
