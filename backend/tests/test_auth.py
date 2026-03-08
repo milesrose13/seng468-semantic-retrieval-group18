@@ -47,6 +47,7 @@ def client():
             yield c
     Base.metadata.drop_all(bind=engine)
 
+
 # this document was written with the help of the following documentation: https://fastapi.tiangolo.com/tutorial/testing/#using-testclient
 # https://docs.pytest.org/en/stable/getting-started.html
 # https://starlette.dev/testclient/
