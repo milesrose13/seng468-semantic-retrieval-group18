@@ -7,13 +7,15 @@ POST /auth/login
 Authenticate and recieve token
 """
 
-# Got the below portion from Mile's test_document so it passes CI, cause the other fixes werent working
+from unittest.mock import patch
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from backend.app import storage
 from backend.app.database import Base, get_db
 from backend.app.main import app
 from backend.app.models.user import User  # noqa: F401
@@ -40,10 +42,10 @@ app.dependency_overrides[get_db] = override_get_db
 @pytest.fixture(scope="module")
 def client():
     Base.metadata.create_all(bind=engine)
-    with TestClient(app) as c:
-        yield c
+    with patch.object(storage, "ensure_bucket_exists"):
+        with TestClient(app) as c:
+            yield c
     Base.metadata.drop_all(bind=engine)
-
 
 # this document was written with the help of the following documentation: https://fastapi.tiangolo.com/tutorial/testing/#using-testclient
 # https://docs.pytest.org/en/stable/getting-started.html
