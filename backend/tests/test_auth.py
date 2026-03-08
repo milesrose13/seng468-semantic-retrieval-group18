@@ -9,6 +9,7 @@ Authenticate and recieve token
 
 from unittest.mock import patch
 
+import pytest
 from fastapi.testclient import TestClient
 
 from backend.app import storage
