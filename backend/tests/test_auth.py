@@ -7,7 +7,43 @@ POST /auth/login
 Authenticate and recieve token
 """
 
-import pytest  # noqa : F401
+# Got the below portion from Mile's test_document so it passes CI, cause the other fixes werent working
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+
+from backend.app.database import Base, get_db
+from backend.app.main import app
+from backend.app.models.user import User  # noqa: F401
+
+engine = create_engine(
+    "sqlite://",
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+def override_get_db():
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+app.dependency_overrides[get_db] = override_get_db
+
+
+@pytest.fixture(scope="module")
+def client():
+    Base.metadata.create_all(bind=engine)
+    with TestClient(app) as c:
+        yield c
+    Base.metadata.drop_all(bind=engine)
+
 
 # this document was written with the help of the following documentation: https://fastapi.tiangolo.com/tutorial/testing/#using-testclient
 # https://docs.pytest.org/en/stable/getting-started.html

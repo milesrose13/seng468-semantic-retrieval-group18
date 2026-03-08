@@ -8,7 +8,6 @@ from sqlalchemy.orm import sessionmaker
 from backend.app import storage
 from backend.app.database import Base, get_db
 from backend.app.main import app
-from backend.app.models.user import User  # noqa: F401
 
 SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///./test.db"
 
