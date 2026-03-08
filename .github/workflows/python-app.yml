@@ -38,4 +38,21 @@ jobs:
       - name: Test with pytest
         env:
           PYTHONPATH: .
+          POSTGRES_USER: appuser
+          POSTGRES_PASSWORD: apppassword
+          POSTGRES_DB: appdb
+          DATABASE_URL: postgresql://appuser:apppassword@localhost:5432/appdb
+          SECRET_KEY: test-secret-key-for-ci
+          ALGORITHM: HS256
+          ACCESS_TOKEN_EXPIRE_MINUTES: 30
+          MINIO_ENDPOINT: http://localhost:9000
+          MINIO_ACCESS_KEY: minioadmin
+          MINIO_SECRET_KEY: minioadmin
+          MINIO_BUCKET: documents
+          RABBITMQ_URL: amqp://guest:guest@localhost:5672/
+          RABBITMQ_USER: guest
+          RABBITMQ_PASS: guest
+          QUEUE_NAME: pdf_processing
+          QDRANT_URL: http://localhost:6333
+          QDRANT_COLLECTION: embeddings
         run: pytest
