@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from fastapi import Depends, FastAPI, status, APIRouter
+from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 
 # from fastapi.security import OAuth2PasswordBearer
