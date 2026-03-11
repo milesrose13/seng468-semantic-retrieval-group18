@@ -12,4 +12,6 @@ boto3
 moto[s3]
 pika
 qdrant-client
+pydantic-settings
+PyJWT
 sentence-transformers
