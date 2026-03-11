@@ -1,11 +1,11 @@
-import os
-
 from qdrant_client import QdrantClient
 from sentence_transformers import SentenceTransformer
 
-QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
-QDRANT_COLLECTION = os.getenv("QDRANT_COLLECTION", "embeddings")
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
+from .config import settings
+
+QDRANT_URL = settings.QDRANT_URL
+QDRANT_COLLECTION = settings.QDRANT_COLLECTION
+EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 
 _model: SentenceTransformer | None = None
 

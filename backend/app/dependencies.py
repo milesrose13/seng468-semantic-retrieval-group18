@@ -1,15 +1,14 @@
-import os
-
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
+from .config import settings
 from .database import get_db
 from .models.user import User
 
-SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")
-ALGORITHM = os.getenv("ALGORITHM", "HS256")
+SECRET_KEY = settings.SECRET_KEY
+ALGORITHM = settings.ALGORITHM
 
 bearer_scheme = HTTPBearer()
 

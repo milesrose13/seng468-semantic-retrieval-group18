@@ -1,10 +1,11 @@
 import json
-import os
 
 import pika
 
-RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
-QUEUE_NAME = os.getenv("QUEUE_NAME", "pdf_processing")
+from .config import settings
+
+RABBITMQ_URL = settings.RABBITMQ_URL
+QUEUE_NAME = settings.QUEUE_NAME
 
 
 def publish_job(document_id: str, storage_key: str, user_id: int) -> None:
