@@ -1,6 +1,6 @@
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError, jwt
+from jwt import DecodeError, ExpiredSignatureError, decode
 from sqlalchemy.orm import Session
 
 from .config import settings
@@ -19,11 +19,11 @@ def get_current_user(
 ) -> User:
     token = credentials.credentials
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
             raise HTTPException(status_code=401, detail="Invalid token")
-    except JWTError as e:
+    except (DecodeError, ExpiredSignatureError) as e:
         raise HTTPException(status_code=401, detail="Invalid token") from e
 
     user = db.query(User).filter(User.username == username).first()

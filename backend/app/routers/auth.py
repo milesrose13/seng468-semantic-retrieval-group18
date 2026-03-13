@@ -36,7 +36,7 @@ class CreateUser(BaseModel):
 class Token(BaseModel):
     token: str
     token_type: str
-    user_id: str | int
+    user_id: str
 
 
 # for now keep it out
@@ -114,4 +114,4 @@ async def login(user_in: CreateUser, db: Session = Depends(get_db)):  # noqa: B0
     access_token = create_access_token(
         data={"sub": user_in.username}, expires_delta=access_token_expires
     )
-    return Token(token=access_token, token_type="bearer", user_id=user.id)
+    return Token(token=access_token, token_type="bearer", user_id=str(user.id))
