@@ -61,6 +61,7 @@ def process_job(job: dict, model: SentenceTransformer, qdrant: QdrantClient) -> 
     user_id = job["user_id"]
 
     db: Session = SessionLocal()
+    doc = None
     try:
         doc = db.query(Document).filter(Document.id == document_id).first()
         if not doc:

@@ -21,7 +21,7 @@ def publish_job(document_id: str, storage_key: str, user_id: int) -> None:
                 {
                     "document_id": document_id,
                     "storage_key": storage_key,
-                    "user_id": user_id,
+                    "user_id": str(user_id),
                 }
             ),
             properties=pika.BasicProperties(delivery_mode=2),  # persistent

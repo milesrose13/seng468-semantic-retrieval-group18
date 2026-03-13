@@ -1,4 +1,4 @@
-from qdrant_client import QdrantClient
+from qdrant_client import QdrantClient, models
 from sentence_transformers import SentenceTransformer
 
 from .config import settings
@@ -32,12 +32,14 @@ def search_embeddings(query: str, user_id: int, limit: int = 5) -> list[dict]:
     if QDRANT_COLLECTION not in collections:
         return []
 
-    vector = _get_model().encode(query).tolist()
+    query_vector = _get_model().encode(query).tolist()
 
-    results = client.search(
+    results = client.query_points(
         collection_name=QDRANT_COLLECTION,
-        query_vector=vector,
-        query_filter={"must": [{"key": "user_id", "match": {"value": user_id}}]},
+        query=query_vector,
+        query_filter=models.Filter(
+            must=[models.FieldCondition(key="user_id", match=models.MatchValue(value=str(user_id)))]
+        ),
         limit=limit,
         with_payload=True,
     )
@@ -49,7 +51,7 @@ def search_embeddings(query: str, user_id: int, limit: int = 5) -> list[dict]:
             "document_id": hit.payload.get("document_id", ""),
             "filename": hit.payload.get("filename", ""),
         }
-        for hit in results
+        for hit in results.points
     ]
 
 

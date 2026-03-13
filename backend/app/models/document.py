@@ -24,8 +24,8 @@ class Document(Base):
 
     filename = Column(String(255), nullable=False)
     upload_date = Column(DateTime, default=datetime.now)
-    status = Column(Enum(DocumentStatus), default=DocumentStatus.PROCESSING)
+    status = Column(String(50), default=DocumentStatus.PROCESSING, nullable=False)
     page_count = Column(Integer, nullable=True)  # Populated later by worker
 
     # The path where the file lives in MinIO (e.g., "user1/doc-uuid.pdf")
-    storage_key = Column(String(512), nullable=False)
+    storage_key = Column(String(512), nullable=True)
