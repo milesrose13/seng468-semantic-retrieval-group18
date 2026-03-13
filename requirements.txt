@@ -13,6 +13,7 @@ moto[s3]
 pika
 qdrant-client
 pydantic-settings
+alembic
 PyJWT
 sentence-transformers
 pypdf
