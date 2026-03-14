@@ -1,4 +1,5 @@
 """Background worker: consumes RabbitMQ jobs, parses PDFs, stores embeddings in Qdrant."""
+
 import io
 import json
 import logging
@@ -90,7 +91,9 @@ def process_job(job: dict, model: SentenceTransformer, qdrant: QdrantClient) -> 
             return
 
         # Generate embeddings
-        log.info("Embedding %d paragraphs for document %s", len(paragraphs), document_id)
+        log.info(
+            "Embedding %d paragraphs for document %s", len(paragraphs), document_id
+        )
         vectors = model.encode(paragraphs, show_progress_bar=False).tolist()
 
         # Store in Qdrant
@@ -114,7 +117,9 @@ def process_job(job: dict, model: SentenceTransformer, qdrant: QdrantClient) -> 
         doc.status = DocumentStatus.READY
         doc.page_count = page_count
         db.commit()
-        log.info("Document %s processed successfully (%d pages)", document_id, page_count)
+        log.info(
+            "Document %s processed successfully (%d pages)", document_id, page_count
+        )
 
     except Exception:
         log.exception("Failed to process document %s", document_id)

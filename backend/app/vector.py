@@ -38,7 +38,11 @@ def search_embeddings(query: str, user_id: int, limit: int = 5) -> list[dict]:
         collection_name=QDRANT_COLLECTION,
         query=query_vector,
         query_filter=models.Filter(
-            must=[models.FieldCondition(key="user_id", match=models.MatchValue(value=str(user_id)))]
+            must=[
+                models.FieldCondition(
+                    key="user_id", match=models.MatchValue(value=str(user_id))
+                )
+            ]
         ),
         limit=limit,
         with_payload=True,

@@ -20,7 +20,9 @@ class Document(Base):
     id = Column(PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
     # FK from user table
-    user_id = Column(PGUUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    user_id = Column(
+        PGUUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True
+    )
 
     filename = Column(String(255), nullable=False)
     upload_date = Column(DateTime, default=datetime.now)
