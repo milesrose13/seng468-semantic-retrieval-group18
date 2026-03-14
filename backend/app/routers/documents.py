@@ -65,7 +65,7 @@ async def list_documents(
             document_id=doc.id,
             filename=doc.filename,
             upload_date=doc.upload_date,
-            status=doc.status.value if doc.status else "processing",
+            status=doc.status if doc.status else "processing",
             page_count=doc.page_count,
         )
         for doc in docs
