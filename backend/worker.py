@@ -4,17 +4,16 @@ import json
 import logging
 import uuid
 
-import pika
 import boto3
+import pika
+from app.config import settings
+from app.database import SessionLocal
+from app.models.document import Document, DocumentStatus
 from pypdf import PdfReader
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 from sentence_transformers import SentenceTransformer
 from sqlalchemy.orm import Session
-
-from app.config import settings
-from app.database import SessionLocal
-from app.models.document import Document, DocumentStatus
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
@@ -107,7 +106,7 @@ def process_job(job: dict, model: SentenceTransformer, qdrant: QdrantClient) -> 
                     "text": para,
                 },
             )
-            for para, vector in zip(paragraphs, vectors)
+            for para, vector in zip(paragraphs, vectors, strict=True)
         ]
         qdrant.upsert(collection_name=QDRANT_COLLECTION, points=points)
 
