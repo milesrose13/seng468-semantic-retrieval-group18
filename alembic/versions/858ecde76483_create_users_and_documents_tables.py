@@ -39,6 +39,7 @@ def upgrade() -> None:
         sa.Column("upload_date", sa.DateTime(timezone=True), nullable=True),
         sa.Column("status", sa.String(), nullable=False),
         sa.Column("page_count", sa.Integer(), nullable=True),
+        sa.Column("storage_key", sa.String(512), nullable=True),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )

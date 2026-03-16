@@ -8,9 +8,9 @@ Tests for GET /search?q=<query>
 import os
 from unittest.mock import patch
 
+import jwt
 import pytest
 from fastapi.testclient import TestClient
-from jose import jwt
 from pwdlib import PasswordHash
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker

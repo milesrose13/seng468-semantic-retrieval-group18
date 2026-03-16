@@ -1,12 +1,12 @@
-import os
-
 import boto3
 from botocore.exceptions import ClientError
 
-MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT")  # None → standard AWS; set → MinIO
-MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY", "minioadmin")
-MINIO_SECRET_KEY = os.getenv("MINIO_SECRET_KEY", "minioadmin")
-MINIO_BUCKET = os.getenv("MINIO_BUCKET", "documents")
+from .config import settings
+
+MINIO_ENDPOINT = settings.MINIO_ENDPOINT
+MINIO_ACCESS_KEY = settings.MINIO_ACCESS_KEY
+MINIO_SECRET_KEY = settings.MINIO_SECRET_KEY
+MINIO_BUCKET = settings.MINIO_BUCKET
 
 
 def _client():

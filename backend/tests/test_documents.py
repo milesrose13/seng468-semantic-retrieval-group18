@@ -14,9 +14,9 @@ import os
 from unittest.mock import patch
 
 import boto3
+import jwt
 import pytest
 from fastapi.testclient import TestClient
-from jose import jwt
 from moto import mock_aws
 from pwdlib import PasswordHash
 from sqlalchemy import create_engine
