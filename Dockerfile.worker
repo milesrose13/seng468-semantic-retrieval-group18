@@ -4,8 +4,9 @@ WORKDIR /app
 
 COPY requirements.txt .
 # Install CPU-only PyTorch then remaining deps
+# Pin numpy<2 to avoid X86_V2 baseline requirement on older VM CPUs
 RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu && \
-    pip install --no-cache-dir numpy --force-reinstall && \
+    pip install --no-cache-dir "numpy<2" --force-reinstall && \
     pip install --no-cache-dir -r requirements.txt
 
 # Pre-download the embedding model into the image so it doesn't fetch at runtime
