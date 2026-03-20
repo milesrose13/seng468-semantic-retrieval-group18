@@ -1,14 +1,11 @@
 fastapi
 uvicorn
-pytest
-httpx
 sqlalchemy
 psycopg2-binary
 python-dotenv
 pwdlib[argon2]
 python-multipart
 boto3
-moto[s3]
 pika
 qdrant-client
 pydantic-settings
