@@ -1,0 +1,17 @@
+.git
+.github
+.ruff_cache
+.pytest_cache
+.venv
+.env
+.vscode
+__pycache__
+*.pyc
+*.db
+*.egg-info
+backend/tests
+pytest.ini
+.ruff.toml
+README.md
+.dockerignore
+.gitignore
