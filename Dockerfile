@@ -29,5 +29,7 @@ FROM base AS worker
 
 COPY backend/ ./backend/
 
+EXPOSE 8080
+
 WORKDIR /app/backend
 CMD ["python", "worker.py"]
