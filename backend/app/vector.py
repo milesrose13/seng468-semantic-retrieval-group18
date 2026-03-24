@@ -68,9 +68,14 @@ def delete_embeddings(document_id: str) -> None:
         return
     client.delete(
         collection_name=QDRANT_COLLECTION,
-        points_selector={
-            "filter": {
-                "must": [{"key": "document_id", "match": {"value": document_id}}]
-            }
-        },
+        points_selector=models.FilterSelector(
+            filter=models.Filter(
+                must=[
+                    models.FieldCondition(
+                        key="document_id",
+                        match=models.MatchValue(value=document_id),
+                    )
+                ]
+            )
+        ),
     )
