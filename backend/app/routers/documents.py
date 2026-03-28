@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
-from .. import queue, storage, vector
+from .. import cache, queue, storage, vector
 from ..database import get_db
 from ..dependencies import get_current_user
 from ..models.document import Document, DocumentStatus
@@ -37,6 +37,8 @@ async def upload_document(
     )
     db.add(doc)
     db.commit()
+
+    cache.invalidate_user_cache(current_user.id)
 
     try:
         queue.publish_job(str(doc_id), storage_key, current_user.id)
@@ -88,6 +90,7 @@ async def delete_document(
 
     storage.delete_file(doc.storage_key)
     vector.delete_embeddings(str(document_id))
+    cache.invalidate_user_cache(current_user.id)
 
     db.delete(doc)
     db.commit()

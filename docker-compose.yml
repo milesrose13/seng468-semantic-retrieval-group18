@@ -49,6 +49,28 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redisinsight:
+    image: redis/redisinsight:latest
+    restart: unless-stopped
+    ports:
+      - "5540:5540"
+    depends_on:
+      redis:
+        condition: service_healthy
+
   qdrant:
     image: qdrant/qdrant:latest
     restart: unless-stopped
@@ -74,6 +96,7 @@ services:
       MINIO_ENDPOINT: http://minio:9000
       RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672/
       QDRANT_URL: http://qdrant:6333
+      REDIS_URL: redis://redis:6379/0
     ports:
       - "8080:8080"
     depends_on:
@@ -84,6 +107,8 @@ services:
       rabbitmq:
         condition: service_healthy
       qdrant:
+        condition: service_healthy
+      redis:
         condition: service_healthy
 
   worker:
@@ -97,6 +122,7 @@ services:
       MINIO_ENDPOINT: http://minio:9000
       RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672/
       QDRANT_URL: http://qdrant:6333
+      REDIS_URL: redis://redis:6379/0
     depends_on:
       postgres:
         condition: service_healthy
@@ -106,8 +132,11 @@ services:
         condition: service_healthy
       qdrant:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
 volumes:
   postgres_data:
   minio_data:
   qdrant_data:
+  redis_data:
