@@ -26,7 +26,8 @@ async def upload_document(
     storage_key = f"user{current_user.id}/{doc_id}.pdf"
 
     file_bytes = await file.read()
-    storage.upload_file(file_bytes, storage_key)
+
+    # MinIO upload is now handled by the worker to keep the API fast
 
     doc = Document(
         id=doc_id,
@@ -39,7 +40,9 @@ async def upload_document(
     db.commit()
 
     try:
-        queue.publish_job(str(doc_id), storage_key, current_user.id)
+        queue.publish_job(
+            str(doc_id), storage_key, current_user.id, file_bytes=file_bytes
+        )
     except Exception as e:
         doc.status = DocumentStatus.ERROR
         db.commit()
