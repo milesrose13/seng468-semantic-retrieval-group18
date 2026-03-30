@@ -78,7 +78,11 @@ def chunk_text(text: str) -> list[str]:
         if current and len(current) + len(para) + 1 > MAX_CHUNK_CHARS:
             if len(current) > 20:
                 chunks.append(current)
-            current = current[-CHUNK_OVERLAP_CHARS:] if len(current) > CHUNK_OVERLAP_CHARS else current
+            current = (
+                current[-CHUNK_OVERLAP_CHARS:]
+                if len(current) > CHUNK_OVERLAP_CHARS
+                else current
+            )
 
         if current:
             current += "\n\n" + para
@@ -98,7 +102,7 @@ def chunk_text(text: str) -> list[str]:
             chunk = current[:split_at].strip()
             if len(chunk) > 20:
                 chunks.append(chunk)
-            current = current[split_at - CHUNK_OVERLAP_CHARS:].strip()
+            current = current[split_at - CHUNK_OVERLAP_CHARS :].strip()
 
     # Flush remaining
     if current and len(current) > 20:
@@ -141,7 +145,9 @@ def process_job(job: dict, model: SentenceTransformer, qdrant: QdrantClient) -> 
         db.expire_all()
         doc = db.query(Document).filter(Document.id == document_id).first()
         if not doc:
-            log.warning("Document %s was deleted during processing, cleaning up", document_id)
+            log.warning(
+                "Document %s was deleted during processing, cleaning up", document_id
+            )
             _s3_client().delete_object(Bucket=MINIO_BUCKET, Key=storage_key)
             return
 
