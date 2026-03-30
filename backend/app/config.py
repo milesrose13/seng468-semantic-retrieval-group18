@@ -39,5 +39,9 @@ class Settings(BaseSettings):
     QDRANT_URL: str
     QDRANT_COLLECTION: str
 
+    # Redis (caching)
+    REDIS_URL: str = "redis://redis:6379/0"
+    CACHE_ENABLED: bool = True
+
 
 settings = Settings()
