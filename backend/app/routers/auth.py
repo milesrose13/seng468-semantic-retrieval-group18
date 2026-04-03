@@ -22,14 +22,14 @@ from ..utils import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token
 # More stuff I read for Bigger Apps from FASTAPI
 # https://fastapi.tiangolo.com/tutorial/bigger-applications/
 
-#Improvement to auth.py performance:
-#Concurrency and async/wait in FastAPI
+# Improvement to auth.py performance:
+# Concurrency and async/wait in FastAPI
 # https://fastapi.tiangolo.com/async/
-#The changes:
+# The changes:
 # Before: when user logged in or signed up the pwd hashing blcoked the server
 # After: the server can handle other requests while the pwd hashing is being done
 
-#create the thread pool executor
+# create the thread pool executor
 executor = ThreadPoolExecutor()
 
 password_hash = PasswordHash.recommended()
@@ -70,7 +70,8 @@ def get_user(db: Session, username: str):
         return False
     return existing_user
 
-#Async definitions:
+
+# Async definitions:
 async def authenticate_user(db: Session, username: str, password: str):
     user = get_user(db, username)
     if not user:
@@ -80,13 +81,16 @@ async def authenticate_user(db: Session, username: str, password: str):
         return False
     return user
 
+
 async def hash_password_async(password: str) -> str:
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(executor, get_password_hash, password)
 
+
 async def verify_password_async(plain: str, hashed_password: str) -> bool:
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(executor, verify_password, plain, hashed_password)
+
 
 router = APIRouter()
 
