@@ -83,12 +83,12 @@ async def authenticate_user(db: Session, username: str, password: str):
 
 
 async def hash_password_async(password: str) -> str:
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     return await loop.run_in_executor(executor, get_password_hash, password)
 
 
 async def verify_password_async(plain: str, hashed_password: str) -> bool:
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     return await loop.run_in_executor(executor, verify_password, plain, hashed_password)
 
 
