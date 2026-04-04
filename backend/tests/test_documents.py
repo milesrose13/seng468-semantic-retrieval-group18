@@ -4,8 +4,7 @@ Tests for document management endpoints:
   GET    /documents
   DELETE /documents/{id}
 
-- MinIO/S3 replaced by moto's in-process fake
-- RabbitMQ replaced by unittest.mock (publish_job)
+- MinIO/S3 and RabbitMQ replaced by unittest.mock (upload offloaded to worker)
 - Qdrant replaced by unittest.mock (delete_embeddings)
 """
 
@@ -13,11 +12,9 @@ import io
 import os
 from unittest.mock import patch
 
-import boto3
 import jwt
 import pytest
 from fastapi.testclient import TestClient
-from moto import mock_aws
 from pwdlib import PasswordHash
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -27,19 +24,6 @@ from backend.app import queue, storage, vector
 from backend.app.database import Base, get_db
 from backend.app.main import app
 from backend.app.models.user import User
-
-# ---------------------------------------------------------------------------
-# Ensure moto intercepts boto3 (no real endpoint during tests)
-# ---------------------------------------------------------------------------
-os.environ.pop("MINIO_ENDPOINT", None)
-os.environ["MINIO_ACCESS_KEY"] = "test"
-os.environ["MINIO_SECRET_KEY"] = "test"
-os.environ["MINIO_BUCKET"] = "documents"
-
-storage.MINIO_ENDPOINT = None
-storage.MINIO_ACCESS_KEY = "test"
-storage.MINIO_SECRET_KEY = "test"
-storage.MINIO_BUCKET = "documents"
 
 # ---------------------------------------------------------------------------
 # Test database — SQLite in-memory via StaticPool
@@ -71,40 +55,19 @@ password_hash = PasswordHash.recommended()
 
 
 @pytest.fixture(scope="module")
-def aws_mock():
-    """Start moto's fake S3 for the entire test module."""
-    with mock_aws():
-        boto3.client(
-            "s3",
-            region_name="us-east-1",
-            aws_access_key_id="test",
-            aws_secret_access_key="test",
-        ).create_bucket(Bucket="documents")
-        yield
-
-
-@pytest.fixture(scope="module")
-def client(aws_mock):
+def client():
     app.dependency_overrides[get_db] = override_get_db
     Base.metadata.create_all(bind=engine)
     with (
         patch.object(storage, "ensure_bucket_exists"),
         patch.object(queue, "publish_job"),
         patch.object(vector, "delete_embeddings"),
+        patch.object(storage, "delete_file"),
     ):
         with TestClient(app) as c:
             yield c
     Base.metadata.drop_all(bind=engine)
     app.dependency_overrides.pop(get_db, None)
-
-
-def _s3():
-    return boto3.client(
-        "s3",
-        region_name="us-east-1",
-        aws_access_key_id="test",
-        aws_secret_access_key="test",
-    )
 
 
 def _create_user_and_token(username: str) -> tuple[str, int]:
@@ -130,11 +93,6 @@ def _auth(token: str) -> dict:
 
 def _pdf(name: str = "test.pdf"):
     return ("file", (name, io.BytesIO(b"%PDF-1.4 fake"), "application/pdf"))
-
-
-def _bucket_keys() -> list[str]:
-    resp = _s3().list_objects_v2(Bucket="documents")
-    return [obj["Key"] for obj in resp.get("Contents", [])]
 
 
 # ---------------------------------------------------------------------------
@@ -178,27 +136,29 @@ class TestUpload:
         resp = client.post("/documents", files=[bad_file], headers=_auth(token))
         assert resp.status_code == 400
 
-    def test_file_stored_in_s3(self, client):
+    def test_file_bytes_sent_to_queue(self, client):
+        """Upload is now offloaded to the worker; verify file_bytes are passed via the queue."""
         token, _ = _create_user_and_token("upload_s3_user")
-        resp = client.post(
-            "/documents", files=[_pdf("stored.pdf")], headers=_auth(token)
-        )
-        assert resp.status_code == 202
-        doc_id = resp.json()["document_id"]
-        keys = _bucket_keys()
-        assert any(doc_id in k for k in keys), f"{doc_id} not found in bucket: {keys}"
+        with patch.object(queue, "publish_job") as mock_publish:
+            resp = client.post(
+                "/documents",
+                files=[_pdf("stored.pdf")],
+                headers=_auth(token),
+            )
+            assert resp.status_code == 202
+            mock_publish.assert_called_once()
+            assert mock_publish.call_args[1]["file_bytes"] is not None
 
-    def test_file_content_preserved(self, client):
+    def test_file_content_preserved_in_queue(self, client):
+        """The exact file content must be forwarded to the worker via file_bytes."""
         token, _ = _create_user_and_token("upload_content_user")
         content = b"%PDF-1.4 this is the real content"
         file = ("file", ("real.pdf", io.BytesIO(content), "application/pdf"))
 
-        resp = client.post("/documents", files=[file], headers=_auth(token))
-        doc_id = resp.json()["document_id"]
-
-        key = next(k for k in _bucket_keys() if doc_id in k)
-        body = _s3().get_object(Bucket="documents", Key=key)["Body"].read()
-        assert body == content
+        with patch.object(queue, "publish_job") as mock_publish:
+            resp = client.post("/documents", files=[file], headers=_auth(token))
+            assert resp.status_code == 202
+            assert mock_publish.call_args[1]["file_bytes"] == content
 
     def test_job_published_to_queue(self, client):
         """publish_job must be called with the correct document_id and storage_key."""
@@ -221,7 +181,7 @@ class TestUpload:
         token, _ = _create_user_and_token("upload_order_user")
         committed_statuses = []
 
-        def capture_then_publish(doc_id, storage_key, user_id):
+        def capture_then_publish(doc_id, storage_key, user_id, **kwargs):
             # Open a fresh session to verify the commit happened before this call
             db = TestingSessionLocal()
             try:
@@ -393,10 +353,12 @@ class TestDelete:
         doc_id = client.post("/documents", files=[_pdf()], headers=h).json()[
             "document_id"
         ]
-        assert any(doc_id in k for k in _bucket_keys())
 
-        client.delete(f"/documents/{doc_id}", headers=h)
-        assert not any(doc_id in k for k in _bucket_keys())
+        with patch.object(storage, "delete_file") as mock_delete:
+            resp = client.delete(f"/documents/{doc_id}", headers=h)
+            assert resp.status_code == 200
+            mock_delete.assert_called_once()
+            assert doc_id in mock_delete.call_args[0][0]
 
     def test_delete_removes_embeddings_from_vector_db(self, client):
         """delete_embeddings must be called with the correct document_id."""

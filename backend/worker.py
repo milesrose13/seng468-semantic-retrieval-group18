@@ -1,5 +1,6 @@
 """Background worker: consumes RabbitMQ jobs, parses PDFs, stores embeddings in Qdrant."""
 
+import base64
 import io
 import json
 import logging
@@ -34,6 +35,10 @@ EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 
 VECTOR_SIZE = 384  # all-MiniLM-L6-v2 output dimension
 
+# Chunking config
+MAX_CHUNK_CHARS = 1000
+CHUNK_OVERLAP_CHARS = 200
+
 
 def _s3_client():
     kwargs = {
@@ -55,6 +60,57 @@ def _ensure_collection(client: QdrantClient) -> None:
         )
 
 
+def chunk_text(text: str) -> list[str]:
+    """Split text into chunks with overlap for better search on large documents.
+
+    Strategy:
+    1. Split on double newlines to get natural paragraphs.
+    2. Merge short paragraphs together until hitting MAX_CHUNK_CHARS.
+    3. If a single paragraph exceeds MAX_CHUNK_CHARS, split it with overlap.
+    """
+    raw_paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
+
+    chunks = []
+    current = ""
+
+    for para in raw_paragraphs:
+        # If adding this paragraph would exceed the limit, flush current chunk
+        if current and len(current) + len(para) + 1 > MAX_CHUNK_CHARS:
+            if len(current) > 20:
+                chunks.append(current)
+            current = (
+                current[-CHUNK_OVERLAP_CHARS:]
+                if len(current) > CHUNK_OVERLAP_CHARS
+                else current
+            )
+
+        if current:
+            current += "\n\n" + para
+        else:
+            current = para
+
+        # If current chunk is way too long (single huge paragraph), split it
+        while len(current) > MAX_CHUNK_CHARS:
+            # Find a sentence boundary near MAX_CHUNK_CHARS
+            split_at = MAX_CHUNK_CHARS
+            for sep in [". ", ".\n", "? ", "! "]:
+                idx = current.rfind(sep, 0, MAX_CHUNK_CHARS)
+                if idx > MAX_CHUNK_CHARS // 2:
+                    split_at = idx + len(sep)
+                    break
+
+            chunk = current[:split_at].strip()
+            if len(chunk) > 20:
+                chunks.append(chunk)
+            current = current[split_at - CHUNK_OVERLAP_CHARS :].strip()
+
+    # Flush remaining
+    if current and len(current) > 20:
+        chunks.append(current)
+
+    return chunks
+
+
 def process_job(job: dict, model: SentenceTransformer, qdrant: QdrantClient) -> None:
     document_id = job["document_id"]
     storage_key = job["storage_key"]
@@ -68,33 +124,58 @@ def process_job(job: dict, model: SentenceTransformer, qdrant: QdrantClient) -> 
             log.warning("Document %s not found in DB, skipping", document_id)
             return
 
-        # Download PDF from MinIO
-        log.info("Downloading %s from MinIO", storage_key)
-        response = _s3_client().get_object(Bucket=MINIO_BUCKET, Key=storage_key)
-        pdf_bytes = response["Body"].read()
+        # Get PDF bytes: either from the message or from MinIO
+        if "file_b64" in job:
+            pdf_bytes = base64.b64decode(job["file_b64"])
+            # Upload to MinIO (offloaded from API)
+            log.info("Uploading %s to MinIO", storage_key)
+            _s3_client().put_object(
+                Bucket=MINIO_BUCKET,
+                Key=storage_key,
+                Body=pdf_bytes,
+                ContentType="application/pdf",
+            )
+        else:
+            # Backwards compatible: download from MinIO if already uploaded
+            log.info("Downloading %s from MinIO", storage_key)
+            response = _s3_client().get_object(Bucket=MINIO_BUCKET, Key=storage_key)
+            pdf_bytes = response["Body"].read()
 
-        # Parse PDF into paragraphs
+        # Re-check document still exists (could have been deleted mid-processing)
+        db.expire_all()
+        doc = db.query(Document).filter(Document.id == document_id).first()
+        if not doc:
+            log.warning(
+                "Document %s was deleted during processing, cleaning up", document_id
+            )
+            _s3_client().delete_object(Bucket=MINIO_BUCKET, Key=storage_key)
+            return
+
+        # Parse PDF
         reader = PdfReader(io.BytesIO(pdf_bytes))
         page_count = len(reader.pages)
-        paragraphs = []
-        for page in reader.pages:
-            text = page.extract_text() or ""
-            for para in text.split("\n\n"):
-                para = para.strip()
-                if len(para) > 20:  # skip very short fragments
-                    paragraphs.append(para)
 
-        if not paragraphs:
+        full_text = ""
+        for page in reader.pages:
+            page_text = page.extract_text() or ""
+            full_text += page_text + "\n\n"
+
+        # Chunk the text
+        chunks = chunk_text(full_text)
+
+        if not chunks:
             log.warning("No text extracted from document %s", document_id)
             doc.status = DocumentStatus.ERROR
             db.commit()
             return
 
-        # Generate embeddings
         log.info(
-            "Embedding %d paragraphs for document %s", len(paragraphs), document_id
+            "Embedding %d chunks for document %s (%d pages)",
+            len(chunks),
+            document_id,
+            page_count,
         )
-        vectors = model.encode(paragraphs, show_progress_bar=False).tolist()
+        vectors = model.encode(chunks, show_progress_bar=False).tolist()
 
         # Store in Qdrant
         _ensure_collection(qdrant)
@@ -106,10 +187,10 @@ def process_job(job: dict, model: SentenceTransformer, qdrant: QdrantClient) -> 
                     "document_id": document_id,
                     "filename": doc.filename,
                     "user_id": user_id,
-                    "text": para,
+                    "text": chunk,
                 },
             )
-            for para, vector in zip(paragraphs, vectors, strict=True)
+            for chunk, vector in zip(chunks, vectors, strict=True)
         ]
         qdrant.upsert(collection_name=QDRANT_COLLECTION, points=points)
 
@@ -118,7 +199,10 @@ def process_job(job: dict, model: SentenceTransformer, qdrant: QdrantClient) -> 
         doc.page_count = page_count
         db.commit()
         log.info(
-            "Document %s processed successfully (%d pages)", document_id, page_count
+            "Document %s processed successfully (%d pages, %d chunks)",
+            document_id,
+            page_count,
+            len(chunks),
         )
 
     except Exception:
@@ -143,7 +227,7 @@ def main():
 
     def callback(ch, method, properties, body):
         job = json.loads(body)
-        log.info("Received job: %s", job)
+        log.info("Received job: %s", {k: v for k, v in job.items() if k != "file_b64"})
         process_job(job, model, qdrant)
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
