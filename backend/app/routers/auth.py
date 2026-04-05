@@ -1,3 +1,5 @@
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 
 from fastapi import APIRouter, Depends, status
@@ -20,6 +22,15 @@ from ..utils import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token
 # More stuff I read for Bigger Apps from FASTAPI
 # https://fastapi.tiangolo.com/tutorial/bigger-applications/
 
+# Improvement to auth.py performance:
+# Concurrency and async/wait in FastAPI
+# https://fastapi.tiangolo.com/async/
+# The changes:
+# Before: when user logged in or signed up the pwd hashing blcoked the server
+# After: the server can handle other requests while the pwd hashing is being done
+
+# create the thread pool executor
+executor = ThreadPoolExecutor()
 
 password_hash = PasswordHash.recommended()
 # For security against timing from FASTAPI doc
@@ -60,14 +71,25 @@ def get_user(db: Session, username: str):
     return existing_user
 
 
-def authenticate_user(db: Session, username: str, password: str):
+# Async definitions:
+async def authenticate_user(db: Session, username: str, password: str):
     user = get_user(db, username)
     if not user:
-        verify_password(password, DUMMY_HASH)
+        await verify_password_async(password, DUMMY_HASH)
         return False
-    if not verify_password(password, user.hashed_password):
+    if not await verify_password_async(password, user.hashed_password):
         return False
     return user
+
+
+async def hash_password_async(password: str) -> str:
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(executor, get_password_hash, password)
+
+
+async def verify_password_async(plain: str, hashed_password: str) -> bool:
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(executor, verify_password, plain, hashed_password)
 
 
 router = APIRouter()
@@ -85,11 +107,11 @@ async def signup(user_in: CreateUser, db: Session = Depends(get_db)):  # noqa: B
         )
 
     # After checking if the username isnt a duplicate then I can hash the password they put in
-    hashed_pass = get_password_hash(user_in.password)
+    hashed_pass = await hash_password_async(user_in.password)
 
     # Then can create the new User
     new_user = User(username=user_in.username, hashed_password=hashed_pass)
-    # Add to the user, no idea if this is correct right now, TODO Look more into
+    # Add to the user database and commit it
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
@@ -104,7 +126,7 @@ async def signup(user_in: CreateUser, db: Session = Depends(get_db)):  # noqa: B
 
 @router.post("/auth/login")
 async def login(user_in: CreateUser, db: Session = Depends(get_db)):  # noqa: B008
-    user = authenticate_user(db, user_in.username, user_in.password)
+    user = await authenticate_user(db, user_in.username, user_in.password)
     if not user:
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
