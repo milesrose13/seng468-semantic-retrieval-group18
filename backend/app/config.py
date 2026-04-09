@@ -43,5 +43,8 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://redis:6379/0"
     CACHE_ENABLED: bool = True
 
+    # CORS
+    CORS_ORIGINS: str = "*"
+
 
 settings = Settings()

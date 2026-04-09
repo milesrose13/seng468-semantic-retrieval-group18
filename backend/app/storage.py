@@ -1,7 +1,11 @@
+import logging
+
 import boto3
 from botocore.exceptions import ClientError
 
 from .config import settings
+
+logger = logging.getLogger(__name__)
 
 MINIO_ENDPOINT = settings.MINIO_ENDPOINT
 MINIO_ACCESS_KEY = settings.MINIO_ACCESS_KEY
@@ -25,9 +29,11 @@ def ensure_bucket_exists() -> None:
     client = _client()
     try:
         client.head_bucket(Bucket=MINIO_BUCKET)
+        logger.info("MinIO bucket '%s' exists", MINIO_BUCKET)
     except ClientError as e:
         if e.response["Error"]["Code"] in ("404", "NoSuchBucket"):
             client.create_bucket(Bucket=MINIO_BUCKET)
+            logger.info("Created MinIO bucket '%s'", MINIO_BUCKET)
         else:
             raise
 

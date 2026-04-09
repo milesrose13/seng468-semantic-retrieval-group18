@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 
@@ -92,6 +93,8 @@ async def verify_password_async(plain: str, hashed_password: str) -> bool:
     return await loop.run_in_executor(executor, verify_password, plain, hashed_password)
 
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 
@@ -116,7 +119,7 @@ async def signup(user_in: CreateUser, db: Session = Depends(get_db)):  # noqa: B
     db.commit()
     db.refresh(new_user)
 
-    # Response (200 OK) From Project Description
+    logger.info("User created: id=%s username=%s", new_user.id, new_user.username)
     return {"message": "User Created Successfully", "user_id": new_user.id}
 
 
@@ -128,6 +131,7 @@ async def signup(user_in: CreateUser, db: Session = Depends(get_db)):  # noqa: B
 async def login(user_in: CreateUser, db: Session = Depends(get_db)):  # noqa: B008
     user = await authenticate_user(db, user_in.username, user_in.password)
     if not user:
+        logger.warning("Failed login attempt: username=%s", user_in.username)
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
             content={"error": "Invalid credentials"},

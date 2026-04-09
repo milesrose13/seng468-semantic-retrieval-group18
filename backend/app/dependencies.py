@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import DecodeError, ExpiredSignatureError, decode
@@ -6,6 +8,8 @@ from sqlalchemy.orm import Session
 from .config import settings
 from .database import get_db
 from .models.user import User
+
+logger = logging.getLogger(__name__)
 
 SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = settings.ALGORITHM
@@ -24,6 +28,7 @@ def get_current_user(
         if username is None:
             raise HTTPException(status_code=401, detail="Invalid token")
     except (DecodeError, ExpiredSignatureError) as e:
+        logger.warning("Token validation failed: %s", type(e).__name__)
         raise HTTPException(status_code=401, detail="Invalid token") from e
 
     user = db.query(User).filter(User.username == username).first()

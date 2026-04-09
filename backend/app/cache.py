@@ -1,9 +1,12 @@
 import hashlib
 import json
+import logging
 
 import redis
 
 from .config import settings
+
+logger = logging.getLogger(__name__)
 
 _redis: redis.Redis | None = None
 
@@ -50,3 +53,4 @@ def invalidate_user_cache(user_id: int) -> None:
     keys = r.keys(f"search:{user_id}:*")
     if keys:
         r.delete(*keys)
+        logger.info("Invalidated %d cache keys for user=%s", len(keys), user_id)

@@ -1,3 +1,4 @@
+import logging
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
@@ -10,6 +11,8 @@ from ..models.document import Document, DocumentStatus
 from ..models.user import User
 from ..schemas.document import DocumentResponse
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/documents", tags=["documents"])
 
 
@@ -20,6 +23,9 @@ async def upload_document(
     current_user: User = Depends(get_current_user),  # noqa: B008
 ):
     if not file.filename or not file.filename.lower().endswith(".pdf"):
+        logger.warning(
+            "Rejected non-PDF upload: %s (user=%s)", file.filename, current_user.id
+        )
         raise HTTPException(status_code=400, detail="Only PDF files are accepted")
 
     doc_id = uuid.uuid4()
@@ -46,12 +52,21 @@ async def upload_document(
             str(doc_id), storage_key, current_user.id, file_bytes=file_bytes
         )
     except Exception as e:
+        logger.error(
+            "Failed to enqueue job for doc=%s user=%s: %s", doc_id, current_user.id, e
+        )
         doc.status = DocumentStatus.ERROR
         db.commit()
         raise HTTPException(
             status_code=500, detail="Failed to enqueue processing job"
         ) from e
 
+    logger.info(
+        "Upload accepted: doc=%s file=%s user=%s",
+        doc_id,
+        file.filename,
+        current_user.id,
+    )
     return {
         "message": "PDF uploaded, processing started",
         "document_id": str(doc_id),
@@ -98,4 +113,5 @@ async def delete_document(
     db.delete(doc)
     db.commit()
 
+    logger.info("Deleted doc=%s user=%s", document_id, current_user.id)
     return {"message": "Document deleted"}
