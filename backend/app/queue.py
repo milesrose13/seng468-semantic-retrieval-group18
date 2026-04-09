@@ -1,9 +1,12 @@
 import base64
 import json
+import logging
 
 import pika
 
 from .config import settings
+
+logger = logging.getLogger(__name__)
 
 RABBITMQ_URL = settings.RABBITMQ_URL
 QUEUE_NAME = settings.QUEUE_NAME
@@ -39,5 +42,6 @@ def publish_job(
             body=json.dumps(payload),
             properties=pika.BasicProperties(delivery_mode=2),  # persistent
         )
+        logger.info("Published job: doc=%s user=%s", document_id, user_id)
     finally:
         connection.close()
