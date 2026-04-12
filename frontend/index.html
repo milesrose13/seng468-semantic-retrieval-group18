@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Semantic Retrieval</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-scanline"></div>
+
+  <!-- AUTH SCREEN -->
+  <div id="auth-screen" class="screen active">
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <span class="top-bar-title">Semantic Retrieval</span>
+        <span class="top-bar-status">Document Search Engine</span>
+      </div>
+    </header>
+
+    <div class="auth-container">
+      <div class="auth-panel">
+        <h2 class="auth-heading">Account Login</h2>
+
+        <div class="auth-tabs">
+          <button class="auth-tab active" data-tab="login">Log In</button>
+          <button class="auth-tab" data-tab="signup">Sign Up</button>
+        </div>
+
+        <form id="login-form" class="auth-form active">
+          <div class="input-group">
+            <label>Username</label>
+            <input type="text" id="login-username" placeholder="Enter username" required autocomplete="username">
+          </div>
+          <div class="input-group">
+            <label>Password</label>
+            <input type="password" id="login-password" placeholder="Enter password" required autocomplete="current-password">
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <span class="btn-text">Log In</span>
+            <span class="btn-arrow">&rarr;</span>
+          </button>
+        </form>
+
+        <form id="signup-form" class="auth-form">
+          <div class="input-group">
+            <label>Username</label>
+            <input type="text" id="signup-username" placeholder="Choose username" required autocomplete="username">
+          </div>
+          <div class="input-group">
+            <label>Password</label>
+            <input type="password" id="signup-password" placeholder="Choose password" required autocomplete="new-password">
+          </div>
+          <button type="submit" class="btn btn-primary">
+            <span class="btn-text">Create Account</span>
+            <span class="btn-arrow">&rarr;</span>
+          </button>
+        </form>
+
+        <div id="auth-error" class="error-msg hidden"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN DASHBOARD -->
+  <div id="dashboard-screen" class="screen">
+    <header class="top-bar">
+      <div class="top-bar-left">
+        <div class="mini-hex"></div>
+        <span class="top-bar-title">Semantic Retrieval</span>
+        <span class="top-bar-status">Document Search Engine</span>
+      </div>
+      <div class="top-bar-right">
+        <span class="agent-name" id="agent-name"></span>
+        <button class="btn btn-small btn-logout" id="logout-btn">Log Out</button>
+      </div>
+    </header>
+
+    <main class="dashboard-content">
+      <!-- Search Section -->
+      <section class="search-section">
+        <div class="section-header">
+          <div class="section-marker"></div>
+          <h2>Search Documents</h2>
+        </div>
+        <div class="search-bar">
+          <input type="text" id="search-input" placeholder="Enter search query...">
+          <button class="btn btn-primary btn-search" id="search-btn">
+            <span class="btn-text">Search</span>
+            <span class="btn-arrow">&rarr;</span>
+          </button>
+        </div>
+        <div id="search-results" class="search-results hidden">
+          <div class="results-header">
+            <span class="results-label">Results</span>
+            <span class="results-count" id="results-count"></span>
+          </div>
+          <div id="results-list" class="results-list"></div>
+        </div>
+        <div id="search-empty" class="search-empty hidden">
+          <div class="empty-icon">:(</div>
+          <p>No matching results found.</p>
+        </div>
+      </section>
+
+      <!-- Documents Section -->
+      <section class="documents-section">
+        <div class="section-header">
+          <div class="section-marker"></div>
+          <h2>My Documents</h2>
+        </div>
+
+        <div class="upload-area" id="upload-area">
+          <div class="upload-border">
+            <div class="upload-content">
+              <div class="upload-icon">&#128196;</div>
+              <p class="upload-text">Drop a PDF here, or click to upload</p>
+            </div>
+          </div>
+          <input type="file" id="file-input" accept=".pdf" multiple hidden>
+        </div>
+
+        <div id="upload-status" class="upload-status hidden"></div>
+
+        <div class="doc-list-header">
+          <span class="doc-col doc-col-name">Filename</span>
+          <span class="doc-col doc-col-status">Status</span>
+          <span class="doc-col doc-col-pages">Pages</span>
+          <span class="doc-col doc-col-date">Uploaded</span>
+          <span class="doc-col doc-col-action"></span>
+        </div>
+        <div id="doc-list" class="doc-list">
+          <div class="doc-loading">Loading documents...</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
