@@ -1,0 +1,15 @@
+Method,Name,Error,Occurrences
+GET,/search?q=machine%20learning%20optimization,HTTPError('502 Server Error: Bad Gateway for url: /search?q=machine%20learning%20optimization'),17
+GET,/search?q=software%20architecture%20patterns,HTTPError('502 Server Error: Bad Gateway for url: /search?q=software%20architecture%20patterns'),21
+GET,/search?q=software%20architecture%20patterns,HTTPError('401 Client Error: Unauthorized for url: /search?q=software%20architecture%20patterns'),8744
+GET,/documents,HTTPError('502 Server Error: Bad Gateway for url: /documents'),35
+GET,/search?q=neural%20network%20training,HTTPError('401 Client Error: Unauthorized for url: /search?q=neural%20network%20training'),8924
+GET,/search?q=distributed%20systems%20scalability,HTTPError('401 Client Error: Unauthorized for url: /search?q=distributed%20systems%20scalability'),8893
+GET,/search?q=neural%20network%20training,HTTPError('502 Server Error: Bad Gateway for url: /search?q=neural%20network%20training'),12
+GET,/documents,HTTPError('401 Client Error: Unauthorized for url: /documents'),14786
+GET,/search?q=database%20indexing%20techniques,HTTPError('502 Server Error: Bad Gateway for url: /search?q=database%20indexing%20techniques'),16
+GET,/search?q=machine%20learning%20optimization,HTTPError('401 Client Error: Unauthorized for url: /search?q=machine%20learning%20optimization'),8648
+GET,/search?q=distributed%20systems%20scalability,HTTPError('502 Server Error: Bad Gateway for url: /search?q=distributed%20systems%20scalability'),25
+GET,/search?q=database%20indexing%20techniques,HTTPError('401 Client Error: Unauthorized for url: /search?q=database%20indexing%20techniques'),8908
+POST,/documents,HTTPError('502 Server Error: Bad Gateway for url: /documents'),85
+POST,/documents,HTTPError('401 Client Error: Unauthorized for url: /documents'),29480
