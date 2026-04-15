@@ -1,13 +1,10 @@
 import io
 import random
 import string
-
 from locust import HttpUser, between, task
-
 
 def random_username():
     return "user_" + "".join(random.choices(string.ascii_lowercase, k=8))
-
 
 class SemanticRetrievalUser(HttpUser):
     wait_time = between(1, 3)
@@ -33,32 +30,35 @@ class SemanticRetrievalUser(HttpUser):
     def auth_headers(self):
         return {"Authorization": f"Bearer {self.token}"}
 
-    @task(2)
+    @task(1) 
     def upload_pdf(self):
-        """Upload a fake 1MB PDF."""
+        """Upload a fake PDF between 1MB and 50MB."""
         if not self.token:
             return
-        fake_pdf = b"%PDF-1.4 " + b"A" * (1024 * 1024)  # ~1MB
+            
+        # To meet TA requirement change this to 1-50 MB
+        size_mb = random.randint(1, 50)
+        fake_pdf = b"%PDF-1.4 " + b"A" * (size_mb * 1024 * 1024)
+        
         self.client.post(
             "/documents",
-            files={"file": ("test.pdf", io.BytesIO(fake_pdf), "application/pdf")},
+            files={"file": (f"test_{size_mb}MB.pdf", io.BytesIO(fake_pdf), "application/pdf")},
             headers=self.auth_headers(),
         )
 
-    @task(3)
+    @task(8)
     def search(self):
-        """Search across documents."""
+        """Search across documents with dynamic queries."""
         if not self.token:
             return
-        queries = [
-            "machine learning optimization",
-            "neural network training",
-            "distributed systems scalability",
-            "database indexing techniques",
-            "software architecture patterns",
-        ]
+            
+        topics = ["machine learning", "neural network", "distributed systems", "database indexing", "software architecture"]
+        actions = ["optimization", "training", "scalability", "techniques", "patterns", "performance"]
+        
+        query = f"{random.choice(topics)} {random.choice(actions)}"
+        
         self.client.get(
-            f"/search?q={random.choice(queries)}",
+            f"/search?q={query}",
             headers=self.auth_headers(),
         )
 
@@ -68,4 +68,3 @@ class SemanticRetrievalUser(HttpUser):
         if not self.token:
             return
         self.client.get("/documents", headers=self.auth_headers())
-

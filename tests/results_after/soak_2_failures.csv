@@ -1,0 +1,8 @@
+Method,Name,Error,Occurrences
+GET,/search?q=machine%20learning%20optimization,HTTPError('502 Server Error: Bad Gateway for url: /search?q=machine%20learning%20optimization'),21
+GET,/search?q=software%20architecture%20patterns,HTTPError('502 Server Error: Bad Gateway for url: /search?q=software%20architecture%20patterns'),9
+GET,/documents,HTTPError('502 Server Error: Bad Gateway for url: /documents'),30
+GET,/search?q=neural%20network%20training,HTTPError('502 Server Error: Bad Gateway for url: /search?q=neural%20network%20training'),16
+GET,/search?q=database%20indexing%20techniques,HTTPError('502 Server Error: Bad Gateway for url: /search?q=database%20indexing%20techniques'),18
+GET,/search?q=distributed%20systems%20scalability,HTTPError('502 Server Error: Bad Gateway for url: /search?q=distributed%20systems%20scalability'),20
+POST,/documents,HTTPError('502 Server Error: Bad Gateway for url: /documents'),67
