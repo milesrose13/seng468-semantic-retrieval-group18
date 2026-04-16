@@ -1,0 +1,37 @@
+Method,Name,Error,Occurrences
+GET,/search?q=neural%20network%20optimization,HTTPError('502 Server Error: Bad Gateway for url: /search?q=neural%20network%20optimization'),8
+GET,/search?q=machine%20learning%20optimization,HTTPError('502 Server Error: Bad Gateway for url: /search?q=machine%20learning%20optimization'),5
+GET,/search?q=distributed%20systems%20optimization,HTTPError('502 Server Error: Bad Gateway for url: /search?q=distributed%20systems%20optimization'),3
+GET,/search?q=software%20architecture%20patterns,HTTPError('502 Server Error: Bad Gateway for url: /search?q=software%20architecture%20patterns'),9
+GET,/search?q=machine%20learning%20techniques,HTTPError('502 Server Error: Bad Gateway for url: /search?q=machine%20learning%20techniques'),13
+GET,/search?q=neural%20network%20performance,HTTPError('502 Server Error: Bad Gateway for url: /search?q=neural%20network%20performance'),15
+GET,/search?q=database%20indexing%20patterns,HTTPError('502 Server Error: Bad Gateway for url: /search?q=database%20indexing%20patterns'),7
+GET,/search?q=distributed%20systems%20training,HTTPError('502 Server Error: Bad Gateway for url: /search?q=distributed%20systems%20training'),8
+GET,/documents,HTTPError('502 Server Error: Bad Gateway for url: /documents'),27
+GET,/search?q=neural%20network%20patterns,HTTPError('502 Server Error: Bad Gateway for url: /search?q=neural%20network%20patterns'),9
+GET,/search?q=software%20architecture%20training,HTTPError('502 Server Error: Bad Gateway for url: /search?q=software%20architecture%20training'),13
+POST,/documents,HTTPError('500 Server Error: Internal Server Error for url: /documents'),250
+GET,/search?q=distributed%20systems%20techniques,HTTPError('502 Server Error: Bad Gateway for url: /search?q=distributed%20systems%20techniques'),11
+GET,/search?q=database%20indexing%20scalability,HTTPError('502 Server Error: Bad Gateway for url: /search?q=database%20indexing%20scalability'),10
+GET,/search?q=database%20indexing%20training,HTTPError('502 Server Error: Bad Gateway for url: /search?q=database%20indexing%20training'),8
+GET,/search?q=neural%20network%20training,HTTPError('502 Server Error: Bad Gateway for url: /search?q=neural%20network%20training'),8
+GET,/search?q=software%20architecture%20optimization,HTTPError('502 Server Error: Bad Gateway for url: /search?q=software%20architecture%20optimization'),17
+GET,/search?q=neural%20network%20scalability,HTTPError('502 Server Error: Bad Gateway for url: /search?q=neural%20network%20scalability'),8
+GET,/search?q=neural%20network%20techniques,HTTPError('502 Server Error: Bad Gateway for url: /search?q=neural%20network%20techniques'),9
+GET,/search?q=software%20architecture%20scalability,HTTPError('502 Server Error: Bad Gateway for url: /search?q=software%20architecture%20scalability'),10
+GET,/search?q=distributed%20systems%20patterns,HTTPError('502 Server Error: Bad Gateway for url: /search?q=distributed%20systems%20patterns'),8
+POST,/documents,HTTPError('413 Client Error: Request Entity Too Large for url: /documents'),10
+GET,/search?q=database%20indexing%20techniques,HTTPError('502 Server Error: Bad Gateway for url: /search?q=database%20indexing%20techniques'),8
+GET,/search?q=software%20architecture%20performance,HTTPError('502 Server Error: Bad Gateway for url: /search?q=software%20architecture%20performance'),13
+GET,/search?q=distributed%20systems%20scalability,HTTPError('502 Server Error: Bad Gateway for url: /search?q=distributed%20systems%20scalability'),8
+GET,/search?q=machine%20learning%20scalability,HTTPError('502 Server Error: Bad Gateway for url: /search?q=machine%20learning%20scalability'),11
+POST,/documents,HTTPError('502 Server Error: Bad Gateway for url: /documents'),34
+POST,/documents,HTTPError('504 Server Error: Gateway Time-out for url: /documents'),10
+GET,/search?q=machine%20learning%20patterns,HTTPError('502 Server Error: Bad Gateway for url: /search?q=machine%20learning%20patterns'),10
+GET,/search?q=software%20architecture%20techniques,HTTPError('502 Server Error: Bad Gateway for url: /search?q=software%20architecture%20techniques'),13
+GET,/search?q=database%20indexing%20performance,HTTPError('502 Server Error: Bad Gateway for url: /search?q=database%20indexing%20performance'),15
+GET,/search?q=database%20indexing%20optimization,HTTPError('502 Server Error: Bad Gateway for url: /search?q=database%20indexing%20optimization'),8
+GET,/search?q=machine%20learning%20training,HTTPError('502 Server Error: Bad Gateway for url: /search?q=machine%20learning%20training'),8
+POST,/documents,HTTPError('400 Client Error: Bad Request for url: /documents'),39
+GET,/search?q=distributed%20systems%20performance,HTTPError('502 Server Error: Bad Gateway for url: /search?q=distributed%20systems%20performance'),17
+GET,/search?q=machine%20learning%20performance,HTTPError('502 Server Error: Bad Gateway for url: /search?q=machine%20learning%20performance'),9
